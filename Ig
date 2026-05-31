@@ -1,79 +1,64 @@
--- FPS BOOSTER / ANTI-LAG
--- Put in StarterPlayerScripts
+-- CLIENT LAG REDUCER
+-- LocalScript
 
-local Lighting = game:GetService("Lighting")
-local Terrain = workspace:FindFirstChildOfClass("Terrain")
-
--------------------------------------------------
--- LIGHTING
--------------------------------------------------
-
-Lighting.GlobalShadows = false
-Lighting.FogEnd = 100000
-Lighting.Brightness = 1
-
-pcall(function()
-	Lighting.EnvironmentDiffuseScale = 0
-	Lighting.EnvironmentSpecularScale = 0
-	Lighting.ShadowSoftness = 0
-end)
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 -------------------------------------------------
--- REMOVE EFFECTS
--------------------------------------------------
-
-for _, v in pairs(Lighting:GetDescendants()) do
-	if v:IsA("BloomEffect")
-	or v:IsA("BlurEffect")
-	or v:IsA("SunRaysEffect")
-	or v:IsA("ColorCorrectionEffect")
-	or v:IsA("DepthOfFieldEffect")
-	or v:IsA("Atmosphere") then
-		v.Enabled = false
-	end
-end
-
--------------------------------------------------
--- TERRAIN
--------------------------------------------------
-
-if Terrain then
-	pcall(function()
-		Terrain.WaterWaveSize = 0
-		Terrain.WaterWaveSpeed = 0
-		Terrain.WaterReflectance = 0
-		Terrain.WaterTransparency = 1
-	end)
-end
-
--------------------------------------------------
--- PART OPTIMIZATION
+-- CLEAN PARTICLES
 -------------------------------------------------
 
 local function optimize(obj)
-	if obj:IsA("BasePart") then
-		obj.CastShadow = false
-		obj.Material = Enum.Material.Plastic
-		obj.Reflectance = 0
-	elseif obj:IsA("Decal") or obj:IsA("Texture") then
-		obj.Transparency = 1
-	elseif obj:IsA("ParticleEmitter")
-		or obj:IsA("Trail")
-		or obj:IsA("Smoke")
-		or obj:IsA("Fire")
-		or obj:IsA("Sparkles") then
+	if obj:IsA("ParticleEmitter")
+	or obj:IsA("Trail")
+	or obj:IsA("Smoke")
+	or obj:IsA("Fire")
+	or obj:IsA("Sparkles") then
 		obj.Enabled = false
 	end
 end
 
-for _, obj in pairs(workspace:GetDescendants()) do
-	optimize(obj)
+for _,v in ipairs(workspace:GetDescendants()) do
+	optimize(v)
 end
 
 workspace.DescendantAdded:Connect(optimize)
 
 -------------------------------------------------
--- FPS CAP REMINDER
+-- REDUCE DISTANT OBJECT PROCESSING
 -------------------------------------------------
 
-print("✅ FPS Booster Enabled")
+local CAMERA_DISTANCE = 1000
+
+RunService.Heartbeat:Connect(function()
+	local character = LocalPlayer.Character
+	if not character then return end
+
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	for _,part in ipairs(workspace:GetDescendants()) do
+		if part:IsA("BasePart") then
+			local distance = (part.Position - root.Position).Magnitude
+
+			if distance > CAMERA_DISTANCE then
+				part.LocalTransparencyModifier = 0.5
+			else
+				part.LocalTransparencyModifier = 0
+			end
+		end
+	end
+end)
+
+-------------------------------------------------
+-- MEMORY CLEANUP
+-------------------------------------------------
+
+while true do
+	task.wait(30)
+
+	collectgarbage("collect")
+
+	print("Memory cleanup complete")
+end
